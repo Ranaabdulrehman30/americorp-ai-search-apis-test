@@ -21,7 +21,7 @@ jobs:
       matrix:
         include:
           - function_name: "uat1-deleteapi"
-            path: "src/delete-api"
+            path: "delete-api"
             tag_identifier: "delete-api"
  
     steps:
