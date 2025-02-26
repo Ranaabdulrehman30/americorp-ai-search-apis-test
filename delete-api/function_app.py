@@ -264,4 +264,4 @@ async def delete_from_index(req: func.HttpRequest) -> func.HttpResponse:
             status_code=500
         )
 
-#test12345453
+#test12

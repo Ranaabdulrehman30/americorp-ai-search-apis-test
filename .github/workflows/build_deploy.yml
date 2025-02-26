@@ -3,11 +3,11 @@ name: Deploy Azure Functions
 on:
   push:
     tags:
-      - 'v*'  # Match any tag starting with v
-  workflow_dispatch:
+      - 'v-*'  # Trigger on any tag starting with v-
+  workflow_dispatch:  # Allow manual triggering
 
 permissions:
-  id-token: write  # Required for OIDC
+  id-token: write  # Required for OIDC auth
   contents: read
 
 env:
@@ -17,18 +17,11 @@ jobs:
   deploy:
     name: Deploy Azure Function
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - function_name: "uat1-deleteapi"
-            path: "delete-api"
-            tag_identifier: "delete-api"
- 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Needed for tag history
 
       - name: Extract tag info
         id: tag-info
@@ -39,21 +32,22 @@ jobs:
           echo "Extracted tag name: $TAG_NAME"
           echo "Extracted function ID: $FUNCTION_ID"
 
+      # No conditional check here - this will always run
       - name: Setup Python
-        if: matrix.tag_identifier == steps.tag-info.outputs.function_id
         uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      # Path is now hardcoded to your delete-api function
       - name: Install dependencies
-        if: matrix.tag_identifier == steps.tag-info.outputs.function_id
         run: |
-          if [ -f "${{ matrix.path }}/requirements.txt" ]; then
-            pip install -r ${{ matrix.path }}/requirements.txt
+          if [ -f "src/delete-api/requirements.txt" ]; then
+            pip install -r delete-api/requirements.txt
+          elif [ -f "delete-api/requirements.txt" ]; then
+            pip install -r delete-api/requirements.txt
           fi
 
       - name: Login to Azure
-        if: matrix.tag_identifier == steps.tag-info.outputs.function_id
         uses: azure/login@v1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -61,8 +55,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy Function
-        if: matrix.tag_identifier == steps.tag-info.outputs.function_id
         uses: azure/functions-action@v1
         with:
-          app-name: ${{ matrix.function_name }}
-          package: ${{ matrix.path }}
+          app-name: "uat1-deleteapi"
+          package: "delete-api"  # Adjust this path if needed based on your repo structure
